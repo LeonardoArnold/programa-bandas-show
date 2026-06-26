@@ -53,8 +53,11 @@ def gerar_docx(ficha: dict) -> bytes:
         p = doc.add_paragraph()
 
         if tipo == "banda":
-            n_banda += 1
             nome = (bloco.get("nome") or "").upper().strip()
+            if not nome:
+                p._element.getparent().remove(p._element)
+                continue
+            n_banda += 1
             musica = (bloco.get("musica") or "").upper().strip()
             texto = f"{n_banda}-{nome}"
             if musica:
@@ -84,3 +87,4 @@ def gerar_docx(ficha: dict) -> bytes:
     bio = BytesIO()
     doc.save(bio)
     return bio.getvalue()
+

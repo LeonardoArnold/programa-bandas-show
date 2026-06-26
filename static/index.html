@@ -12,6 +12,7 @@
     <nav>
       <button class="tab ativo" data-view="montar">Montar ficha</button>
       <button class="tab" data-view="bandas">Bandas</button>
+      <button class="tab" data-view="modelo">Modelo</button>
       <button class="tab" data-view="historico">Histórico</button>
     </nav>
   </header>
@@ -36,13 +37,15 @@
 
       <div class="paleta">
         <span class="paleta-label">Adicionar:</span>
-        <select id="sel-patrocinador"><option value="">+ Patrocinador…</option></select>
-        <button class="add" data-add="aleatoria">+ Banda aleatória</button>
+        <button id="btn-patrocinadores" class="add">☑ Patrocinadores…</button>
+        <button class="add" data-add="banda">+ Banda (vaga)</button>
         <button class="add" data-add="comercial">+ Comercial</button>
         <button class="add" data-add="texto">+ Texto / patrocínio</button>
         <button class="add" data-add="abracos">+ Abraços</button>
         <button class="add" data-add="redes_sociais">+ Redes sociais</button>
       </div>
+
+      <div id="pat-resultado" class="pat-box" data-aberto="0"></div>
 
       <div class="playlist-box">
         <input id="pl-url" type="text" placeholder="Cole aqui o link de uma playlist do YouTube">
@@ -58,7 +61,7 @@
         <button id="btn-salvar" class="prim">💾 Salvar ficha</button>
         <button id="btn-word" class="prim">⬇ Gerar Word</button>
         <button id="btn-sortear-ordem" class="sec">🎲 Sortear ordem</button>
-        <button id="btn-limpar" class="sec">Limpar</button>
+        <button id="btn-limpar" class="sec">Nova ficha (recarrega modelo)</button>
         <span id="status" class="status"></span>
       </div>
     </section>
@@ -74,6 +77,25 @@
         </thead>
         <tbody></tbody>
       </table>
+    </section>
+
+    <section id="view-modelo" class="view">
+      <p class="ajuda">Este é o modelo que aparece em toda ficha nova. As "vagas" de banda você preenche
+      depois, na hora de montar. Edite os blocos fixos, reordene com ▲▼ e salve.</p>
+      <div class="paleta">
+        <span class="paleta-label">Adicionar ao modelo:</span>
+        <button class="add" data-add="banda">+ Vaga de banda</button>
+        <button class="add" data-add="comercial">+ Comercial</button>
+        <button class="add" data-add="texto">+ Texto / patrocínio</button>
+        <button class="add" data-add="abracos">+ Abraços</button>
+        <button class="add" data-add="redes_sociais">+ Redes sociais</button>
+      </div>
+      <ul id="lista-blocos-modelo"></ul>
+      <div class="acoes-ficha">
+        <button id="btn-salvar-modelo" class="prim">💾 Salvar modelo</button>
+        <button id="btn-restaurar-modelo" class="sec">↺ Restaurar padrão</button>
+        <span id="modelo-status" class="status"></span>
+      </div>
     </section>
 
     <section id="view-historico" class="view">

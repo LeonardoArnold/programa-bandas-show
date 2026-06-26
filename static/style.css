@@ -82,3 +82,11 @@ th{background:#f0f2f4;color:#555;font-weight:600}
 .pl-item input[type=text]{flex:1;padding:6px;border:1px solid var(--borda);border-radius:7px}
 .pl-item .tag{background:#fff4d6;color:#9a7b00}
 .pl-add-sel{margin-top:8px;align-self:flex-start}
+
+/* Painel de patrocinadores (checkbox) */
+.pat-box{display:flex;flex-direction:column;gap:4px}
+.pat-box:not(:empty){background:#fff;border:1px solid var(--borda);border-radius:12px;padding:12px;margin:8px 0}
+.pat-item{display:flex;align-items:center;gap:8px;font-size:14px}
+.tag.dica{background:#e3edff;color:#28508a}
+.num.vaga{color:#bbb;font-weight:600;font-size:11px;text-transform:uppercase}
+.ajuda{color:var(--suave);font-size:13px;background:#fff;border:1px solid var(--borda);border-radius:10px;padding:10px 12px}

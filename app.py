@@ -76,6 +76,22 @@ def api_quem_toca(data_exibicao: str):
     return db.quem_toca_hoje(data_exibicao)
 
 
+# ---------- MODELO ----------
+class Modelo(BaseModel):
+    blocos: list = []
+
+
+@app.get("/api/modelo")
+def api_get_modelo():
+    return {"blocos": db.get_modelo()}
+
+
+@app.post("/api/modelo")
+def api_set_modelo(modelo: Modelo):
+    db.set_modelo(modelo.blocos)
+    return {"ok": True, "blocos": db.get_modelo()}
+
+
 # ---------- FICHAS ----------
 @app.get("/api/proxima")
 def api_proxima():
@@ -191,3 +207,4 @@ app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 @app.get("/")
 def index():
     return FileResponse(BASE / "static" / "index.html")
+

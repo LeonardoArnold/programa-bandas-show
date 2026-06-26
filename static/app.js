@@ -1,5 +1,6 @@
 ﻿// ===== Estado =====
 let blocos = [];
+let modeloBlocos = [];
 let bandas = [];
 let fichaId = null;
 
@@ -10,6 +11,7 @@ const api = async (url, opts) => {
   return r.json();
 };
 const status = (msg) => { $("#status").textContent = msg; if (msg) setTimeout(() => $("#status").textContent = "", 4000); };
+const clone = (x) => JSON.parse(JSON.stringify(x));
 
 const ROTULO = {
   banda: "Banda", comercial: "Comercial", texto: "Texto",
@@ -24,6 +26,7 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   $("#view-" + t.dataset.view).classList.add("ativo");
   if (t.dataset.view === "bandas") carregarBandas();
   if (t.dataset.view === "historico") carregarHistorico();
+  if (t.dataset.view === "modelo") carregarModelo();
 });
 
 function novoBloco(tipo, extra = {}) {
@@ -33,42 +36,27 @@ function novoBloco(tipo, extra = {}) {
   }, extra);
 }
 
-function addBloco(tipo) {
-  if (tipo === "abracos") blocos.push(novoBloco(tipo, { conteudo: "ABRAÇOS" }));
-  else if (tipo === "redes_sociais") blocos.push(novoBloco(tipo, { conteudo: "REDES SOCIAIS" }));
-  else blocos.push(novoBloco(tipo));
-  render();
-}
-
-function mover(i, d) {
-  const j = i + d;
-  if (j < 0 || j >= blocos.length) return;
-  [blocos[i], blocos[j]] = [blocos[j], blocos[i]];
-  render();
-}
-function remover(i) { blocos.splice(i, 1); render(); }
-
-function render() {
-  const ul = $("#lista-blocos");
+function renderEditor(arr, ul, reRender) {
   ul.innerHTML = "";
   let n = 0;
-  blocos.forEach((b, i) => {
+  arr.forEach((b, i) => {
     const li = document.createElement("li");
     li.className = "bloco tipo-" + b.tipo;
 
     const ordem = document.createElement("div");
     ordem.className = "ordem";
     ordem.innerHTML = `<button title="Subir">▲</button><button title="Descer">▼</button>`;
-    ordem.children[0].onclick = () => mover(i, -1);
-    ordem.children[1].onclick = () => mover(i, +1);
+    ordem.children[0].onclick = () => { mover(arr, i, -1); reRender(); };
+    ordem.children[1].onclick = () => { mover(arr, i, +1); reRender(); };
     li.appendChild(ordem);
 
     const cont = document.createElement("div");
     cont.className = "conteudo";
 
     if (b.tipo === "banda") {
-      n++;
-      cont.innerHTML = `<span class="num">${n}.</span>`;
+      const preenchida = (b.nome || "").trim() !== "";
+      if (preenchida) { n++; cont.innerHTML = `<span class="num">${n}.</span>`; }
+      else { cont.innerHTML = `<span class="num vaga">vaga</span>`; }
       const nome = mkInputMaiusculo(b, "nome", "Nome da banda", 180);
       const mus = mkInputMaiusculo(b, "musica", "Música", 150);
       const feat = mkInputMaiusculo(b, "feat", "FT. (opcional)", 110);
@@ -78,8 +66,7 @@ function render() {
       lanc.innerHTML = `<input type="checkbox" ${b.lancamento ? "checked" : ""}> Lançamento`;
       lanc.querySelector("input").onchange = (e) => b.lancamento = e.target.checked;
       const btnYt = document.createElement("button");
-      btnYt.textContent = "▶ clipe";
-      btnYt.className = "sec";
+      btnYt.textContent = "▶ clipe"; btnYt.className = "sec";
       btnYt.onclick = () => preverClipe(b, li);
       cont.append(nome, mus, feat, lanc, yt, btnYt);
     } else if (b.tipo === "comercial") {
@@ -87,51 +74,55 @@ function render() {
     } else {
       const inp = mkInput(b, "conteudo", "Texto que aparece na ficha", 380);
       const tag = document.createElement("span");
-      tag.className = "tag";
-      tag.textContent = ROTULO[b.tipo] || b.tipo;
+      tag.className = "tag"; tag.textContent = ROTULO[b.tipo] || b.tipo;
       cont.append(inp, tag);
     }
 
     li.appendChild(cont);
 
     const rm = document.createElement("button");
-    rm.className = "rm";
-    rm.textContent = "✕";
-    rm.title = "Remover";
-    rm.onclick = () => remover(i);
+    rm.className = "rm"; rm.textContent = "✕"; rm.title = "Remover";
+    rm.onclick = () => { arr.splice(i, 1); reRender(); };
     li.appendChild(rm);
 
     ul.appendChild(li);
   });
 }
 
+function mover(arr, i, d) {
+  const j = i + d;
+  if (j < 0 || j >= arr.length) return;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+}
+
+function renderFicha() { renderEditor(blocos, $("#lista-blocos"), renderFicha); }
+function renderModelo() { renderEditor(modeloBlocos, $("#lista-blocos-modelo"), renderModelo); }
+
 function mkInput(obj, campo, ph, largura) {
   const inp = document.createElement("input");
-  inp.type = "text";
-  inp.placeholder = ph;
-  inp.value = obj[campo] || "";
-  inp.style.width = largura + "px";
+  inp.type = "text"; inp.placeholder = ph;
+  inp.value = obj[campo] || ""; inp.style.width = largura + "px";
   inp.oninput = (e) => obj[campo] = e.target.value;
   return inp;
 }
 
-// Igual ao mkInput, mas força CAIXA ALTA enquanto digita, preservando o cursor.
 function mkInputMaiusculo(obj, campo, ph, largura) {
   const inp = document.createElement("input");
-  inp.type = "text";
-  inp.placeholder = ph;
-  inp.value = (obj[campo] || "").toUpperCase();
-  inp.style.width = largura + "px";
+  inp.type = "text"; inp.placeholder = ph;
+  inp.value = (obj[campo] || "").toUpperCase(); inp.style.width = largura + "px";
   inp.oninput = (e) => {
     const pos = e.target.selectionStart;
     const maiusculo = e.target.value.toUpperCase();
-    if (e.target.value !== maiusculo) {
-      e.target.value = maiusculo;
-      e.target.setSelectionRange(pos, pos);
-    }
+    if (e.target.value !== maiusculo) { e.target.value = maiusculo; e.target.setSelectionRange(pos, pos); }
     obj[campo] = maiusculo;
   };
   return inp;
+}
+
+function adicionarBandaNaFicha(dados) {
+  const vaga = blocos.find(b => b.tipo === "banda" && !(b.nome || "").trim());
+  if (vaga) Object.assign(vaga, dados);
+  else blocos.push(novoBloco("banda", dados));
 }
 
 async function preverClipe(b, li) {
@@ -145,75 +136,74 @@ async function preverClipe(b, li) {
     div.className = "yt-prev";
     div.style.cssText = "flex-basis:100%;display:flex;gap:10px;align-items:center;margin-top:6px;font-size:13px;color:#444";
     if (r.ok) {
-      div.innerHTML = `<img src="${r.thumbnail}" width="120" style="border-radius:6px">
-        <div><b>${r.titulo}</b><br>${r.canal}</div>`;
+      div.innerHTML = `<img src="${r.thumbnail}" width="120" style="border-radius:6px"><div><b>${r.titulo}</b><br>${r.canal}</div>`;
       status("");
-    } else {
-      div.textContent = "Não consegui ler esse link.";
-    }
+    } else { div.textContent = "Não consegui ler esse link."; }
     li.querySelector(".conteudo").appendChild(div);
   } catch (e) { status("Erro ao buscar clipe."); }
 }
 
-function preencherSelectPatrocinadores() {
-  const sel = $("#sel-patrocinador");
-  sel.innerHTML = `<option value="">+ Patrocinador…</option>`;
-  bandas.filter(b => b.tipo === "patrocinador" && !b.bloqueada).forEach(b => {
-    const o = document.createElement("option");
-    o.value = b.id;
-    o.textContent = b.nome + (b.master ? " (MASTER)" : "");
-    sel.appendChild(o);
+$("#btn-patrocinadores").onclick = async () => {
+  const div = $("#pat-resultado");
+  if (div.dataset.aberto === "1") { div.innerHTML = ""; div.dataset.aberto = "0"; return; }
+  div.dataset.aberto = "1";
+  let naVez = new Set();
+  const exib = $("#f-exibicao").value.trim();
+  if (exib) {
+    try { (await api("/api/quem-toca?data_exibicao=" + encodeURIComponent(exib))).forEach(b => naVez.add(b.id)); } catch (e) {}
+  }
+  const lista = bandas.filter(b => b.tipo === "patrocinador" && !b.bloqueada);
+  div.innerHTML = "";
+  lista.forEach(b => {
+    const linha = document.createElement("div");
+    linha.className = "pat-item";
+    const chk = document.createElement("input"); chk.type = "checkbox"; chk.dataset.id = b.id;
+    const nome = document.createElement("span"); nome.textContent = b.nome + (b.master ? " (MASTER)" : "");
+    linha.append(chk, nome);
+    if (b.master || naVez.has(b.id)) {
+      const dica = document.createElement("span"); dica.className = "tag dica";
+      dica.textContent = b.master ? "toca sempre" : "na vez";
+      linha.appendChild(dica);
+    }
+    div.appendChild(linha);
   });
-}
-$("#sel-patrocinador").onchange = (e) => {
-  const b = bandas.find(x => x.id == e.target.value);
-  if (!b) return;
-  if (b.bloqueada) { status("Essa banda está bloqueada e não pode entrar."); e.target.value = ""; return; }
-  blocos.push(novoBloco("banda", { nome: b.nome, musica: b.musica_padrao || "", youtube_link: b.youtube_link || "", banda_id: b.id }));
-  e.target.value = "";
-  render();
+  const btn = document.createElement("button");
+  btn.className = "add pl-add-sel"; btn.textContent = "+ Adicionar marcados à ficha";
+  btn.onclick = () => {
+    let n = 0;
+    div.querySelectorAll(".pat-item input:checked").forEach(chk => {
+      const b = bandas.find(x => x.id == chk.dataset.id);
+      if (b) { adicionarBandaNaFicha({ nome: b.nome.toUpperCase(), musica: (b.musica_padrao || "").toUpperCase(), youtube_link: b.youtube_link || "", banda_id: b.id }); n++; }
+    });
+    if (n) { renderFicha(); status(n + " patrocinador(es) adicionado(s)"); div.innerHTML = ""; div.dataset.aberto = "0"; }
+  };
+  div.appendChild(btn);
 };
 
-document.querySelectorAll(".add").forEach(btn => btn.onclick = () => addBloco(btn.dataset.add));
+document.querySelectorAll("#view-montar .add[data-add]").forEach(btn => btn.onclick = () => {
+  const tipo = btn.dataset.add;
+  if (tipo === "banda") blocos.push(novoBloco("banda"));
+  else if (tipo === "abracos") blocos.push(novoBloco(tipo, { conteudo: "ABRAÇOS" }));
+  else if (tipo === "redes_sociais") blocos.push(novoBloco(tipo, { conteudo: "REDES SOCIAIS" }));
+  else blocos.push(novoBloco(tipo));
+  renderFicha();
+});
 
-$("#btn-sugerir").onclick = async () => {
-  await sugerir();
-  await incluirAutomaticos();
-  render();
-};
+$("#btn-sugerir").onclick = async () => { await sugerir(); };
 async function sugerir() {
   const s = await api("/api/proxima");
   $("#f-numero").value = s.numero;
   $("#f-exibicao").value = s.data_exibicao;
   $("#f-gravacao").value = s.data_gravacao;
 }
-$("#f-exibicao").onchange = async () => {
-  const v = $("#f-exibicao").value.trim();
-  const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+$("#f-exibicao").onchange = () => {
+  const m = $("#f-exibicao").value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (m) {
-    const d = new Date(+m[3], +m[2] - 1, +m[1]);
-    d.setDate(d.getDate() - 8);
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const d = new Date(+m[3], +m[2] - 1, +m[1]); d.setDate(d.getDate() - 8);
+    const dd = String(d.getDate()).padStart(2, "0"), mm = String(d.getMonth() + 1).padStart(2, "0");
     $("#f-gravacao").value = `${dd}/${mm}/${d.getFullYear()}`;
   }
 };
-
-async function incluirAutomaticos() {
-  const exibicao = $("#f-exibicao").value.trim();
-  const m = await api("/api/master");
-  if (m && m.id && !blocos.some(b => b.banda_id === m.id)) {
-    blocos.push(novoBloco("banda", { nome: m.nome, musica: m.musica_padrao || "", youtube_link: m.youtube_link || "", banda_id: m.id }));
-  }
-  if (exibicao) {
-    const naVez = await api("/api/quem-toca?data_exibicao=" + encodeURIComponent(exibicao));
-    naVez.forEach(b => {
-      if (!blocos.some(x => x.banda_id === b.id)) {
-        blocos.push(novoBloco("banda", { nome: b.nome, musica: b.musica_padrao || "", youtube_link: b.youtube_link || "", banda_id: b.id }));
-      }
-    });
-  }
-}
 
 function montarFichaObj() {
   return {
@@ -227,44 +217,113 @@ function montarFichaObj() {
 
 $("#btn-salvar").onclick = async () => {
   if (!$("#f-numero").value.trim()) { status("Informe o número do programa."); return; }
-  const f = await api("/api/fichas", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(montarFichaObj()),
-  });
+  const f = await api("/api/fichas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(montarFichaObj()) });
   fichaId = f.id;
   status("Ficha salva ✓");
 };
 
 $("#btn-word").onclick = async () => {
-  const r = await fetch("/api/preview/docx", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(montarFichaObj()),
-  });
+  const r = await fetch("/api/preview/docx", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(montarFichaObj()) });
   const blob = await r.blob();
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `ficha_${$("#f-numero").value.trim() || "nova"}.docx`;
-  a.click();
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `ficha_${$("#f-numero").value.trim() || "nova"}.docx`; a.click();
   status("Word gerado ✓");
 };
 
-$("#btn-limpar").onclick = async () => {
-  blocos = []; fichaId = null;
-  $("#f-numero").value = ""; $("#f-exibicao").value = ""; $("#f-gravacao").value = "";
-  await novaFicha();
-};
+$("#btn-limpar").onclick = async () => { await novaFicha(); };
 
 async function novaFicha() {
+  fichaId = null;
+  const m = await api("/api/modelo");
+  blocos = clone(m.blocos || []);
   await sugerir();
-  await incluirAutomaticos();
-  render();
+  renderFicha();
 }
+
+$("#pl-sortear").onclick = async () => {
+  const url = $("#pl-url").value.trim();
+  if (!url) { $("#pl-status").textContent = "Cole o link da playlist."; return; }
+  const qtd = +$("#pl-qtd").value || 10;
+  $("#pl-status").textContent = "Buscando na playlist… (alguns segundos)";
+  try {
+    const r = await api("/api/playlist/sortear", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, quantidade: qtd }) });
+    if (!r.ok) { $("#pl-status").textContent = "Erro: " + r.erro; return; }
+    $("#pl-status").textContent = `${r.bandas.length} bandas sorteadas — marque as que vão entrar:`;
+    renderResultadoPlaylist(r.bandas);
+  } catch (e) { $("#pl-status").textContent = "Falha ao buscar a playlist."; }
+};
+
+function renderResultadoPlaylist(lista) {
+  const div = $("#pl-resultado");
+  div.innerHTML = "";
+  lista.forEach((b) => {
+    const linha = document.createElement("div"); linha.className = "pl-item";
+    const chk = document.createElement("input"); chk.type = "checkbox";
+    const nome = document.createElement("input"); nome.type = "text"; nome.value = (b.nome || "").toUpperCase();
+    nome.oninput = () => { nome.value = nome.value.toUpperCase(); };
+    const mus = document.createElement("input"); mus.type = "text"; mus.value = (b.musica || "").toUpperCase(); mus.placeholder = "música";
+    mus.oninput = () => { mus.value = mus.value.toUpperCase(); };
+    linha.append(chk, nome, mus);
+    if (b.incompleto) {
+      const aviso = document.createElement("span"); aviso.className = "tag";
+      aviso.title = "Título fora do padrão — confira antes de marcar"; aviso.textContent = "⚠ confira";
+      linha.appendChild(aviso);
+    }
+    linha._pega = () => ({ marcado: chk.checked, nome: nome.value, musica: mus.value, lancamento: b.lancamento, youtube_link: b.youtube_link });
+    div.appendChild(linha);
+  });
+  const btn = document.createElement("button");
+  btn.className = "add pl-add-sel"; btn.textContent = "+ Adicionar selecionadas à ficha";
+  btn.onclick = () => {
+    let n = 0;
+    div.querySelectorAll(".pl-item").forEach(linha => {
+      const d = linha._pega();
+      if (d.marcado) { adicionarBandaNaFicha({ nome: d.nome, musica: d.musica, lancamento: d.lancamento, youtube_link: d.youtube_link }); n++; }
+    });
+    if (n) { renderFicha(); status(n + " banda(s) adicionada(s)"); div.innerHTML = ""; $("#pl-url").value = ""; $("#pl-status").textContent = ""; }
+  };
+  div.appendChild(btn);
+}
+
+$("#btn-sortear-ordem").onclick = () => {
+  const idx = [];
+  blocos.forEach((b, i) => { if (b.tipo === "banda" && (b.nome || "").trim()) idx.push(i); });
+  const arr = idx.map(i => blocos[i]);
+  for (let k = arr.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [arr[k], arr[j]] = [arr[j], arr[k]]; }
+  idx.forEach((pos, n) => blocos[pos] = arr[n]);
+  renderFicha();
+  status("Ordem das atrações sorteada 🎲");
+};
+
+async function carregarModelo() {
+  const m = await api("/api/modelo");
+  modeloBlocos = clone(m.blocos || []);
+  renderModelo();
+}
+document.querySelectorAll("#view-modelo .add[data-add]").forEach(btn => btn.onclick = () => {
+  const tipo = btn.dataset.add;
+  if (tipo === "banda") modeloBlocos.push(novoBloco("banda"));
+  else if (tipo === "abracos") modeloBlocos.push(novoBloco(tipo, { conteudo: "ABRAÇOS" }));
+  else if (tipo === "redes_sociais") modeloBlocos.push(novoBloco(tipo, { conteudo: "REDES SOCIAIS" }));
+  else modeloBlocos.push(novoBloco(tipo));
+  renderModelo();
+});
+$("#btn-salvar-modelo").onclick = async () => {
+  await api("/api/modelo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ blocos: modeloBlocos }) });
+  $("#modelo-status").textContent = "Modelo salvo ✓ (vai aparecer nas próximas fichas novas)";
+  setTimeout(() => $("#modelo-status").textContent = "", 4000);
+};
+$("#btn-restaurar-modelo").onclick = async () => {
+  if (!confirm("Restaurar o modelo padrão da foto? Isso descarta o modelo atual.")) return;
+  await api("/api/modelo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ blocos: [] }) });
+  await carregarModelo();
+  $("#modelo-status").textContent = "Modelo restaurado ao padrão ✓";
+  setTimeout(() => $("#modelo-status").textContent = "", 4000);
+};
 
 async function carregarBandas(busca = "") {
   bandas = await api("/api/bandas?busca=" + encodeURIComponent(busca));
-  preencherSelectPatrocinadores();
-  const tb = $("#tab-bandas tbody");
-  tb.innerHTML = "";
+  const tb = $("#tab-bandas tbody"); tb.innerHTML = "";
   bandas.forEach(b => {
     const tr = document.createElement("tr");
     const freq = b.master ? "—" : (b.tipo === "patrocinador" ? `<span class="pill freq">${ROTULO_FREQ[b.frequencia] || b.frequencia}</span>` : "—");
@@ -277,8 +336,7 @@ async function carregarBandas(busca = "") {
       <td>${b.ultima_vez || ""}</td>
       <td>${b.musica_padrao || ""}</td>
       <td class="linha-acoes"></td>`;
-    const ed = document.createElement("button"); ed.textContent = "editar"; ed.className = "sec";
-    ed.onclick = () => abrirModalBanda(b);
+    const ed = document.createElement("button"); ed.textContent = "editar"; ed.className = "sec"; ed.onclick = () => abrirModalBanda(b);
     const ex = document.createElement("button"); ex.textContent = "excluir"; ex.className = "sec";
     ex.onclick = async () => { if (confirm("Excluir " + b.nome + "?")) { await api("/api/bandas/" + b.id, { method: "DELETE" }); carregarBandas($("#busca-banda").value); } };
     tr.querySelector(".linha-acoes").append(ed, ex);
@@ -314,14 +372,10 @@ $("#b-cancelar").onclick = () => $("#modal-banda").classList.add("oculto");
 $("#b-salvar").onclick = async () => {
   const banda = {
     id: $("#b-id").value ? +$("#b-id").value : null,
-    nome: $("#b-nome").value.trim(),
-    tipo: $("#b-tipo").value,
-    master: $("#b-master").checked ? 1 : 0,
-    bloqueada: $("#b-bloqueada").checked ? 1 : 0,
-    frequencia: $("#b-frequencia").value,
-    ultima_vez: $("#b-ultima-vez").value.trim(),
-    musica_padrao: $("#b-musica").value.trim(),
-    youtube_link: $("#b-youtube").value.trim(),
+    nome: $("#b-nome").value.trim(), tipo: $("#b-tipo").value,
+    master: $("#b-master").checked ? 1 : 0, bloqueada: $("#b-bloqueada").checked ? 1 : 0,
+    frequencia: $("#b-frequencia").value, ultima_vez: $("#b-ultima-vez").value.trim(),
+    musica_padrao: $("#b-musica").value.trim(), youtube_link: $("#b-youtube").value.trim(),
     observacoes: $("#b-obs").value.trim(),
   };
   if (!banda.nome) { alert("Informe o nome."); return; }
@@ -332,13 +386,11 @@ $("#b-salvar").onclick = async () => {
 
 async function carregarHistorico() {
   const fichas = await api("/api/fichas");
-  const tb = $("#tab-fichas tbody");
-  tb.innerHTML = "";
+  const tb = $("#tab-fichas tbody"); tb.innerHTML = "";
   fichas.forEach(f => {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${f.numero}</td><td>${f.data_exibicao}</td><td>${f.data_gravacao}</td><td>${f.criado_em}</td><td class="linha-acoes"></td>`;
-    const ab = document.createElement("button"); ab.textContent = "abrir"; ab.className = "sec";
-    ab.onclick = () => abrirFicha(f.id);
+    const ab = document.createElement("button"); ab.textContent = "abrir"; ab.className = "sec"; ab.onclick = () => abrirFicha(f.id);
     const dup = document.createElement("button"); dup.textContent = "duplicar"; dup.className = "sec";
     dup.onclick = async () => { const nova = await api("/api/fichas/" + f.id + "/duplicar", { method: "POST" }); carregarFichaNoEditor(nova); status("Duplicada — ajuste e salve."); };
     const wd = document.createElement("button"); wd.textContent = "word"; wd.className = "sec";
@@ -349,95 +401,17 @@ async function carregarHistorico() {
     tb.appendChild(tr);
   });
 }
-
-async function abrirFicha(id) {
-  const f = await api("/api/fichas/" + id);
-  carregarFichaNoEditor(f);
-}
+async function abrirFicha(id) { carregarFichaNoEditor(await api("/api/fichas/" + id)); }
 function carregarFichaNoEditor(f) {
-  fichaId = f.id;
-  blocos = f.blocos || [];
+  fichaId = f.id; blocos = f.blocos || [];
   $("#f-numero").value = f.numero || "";
   $("#f-exibicao").value = f.data_exibicao || "";
   $("#f-gravacao").value = f.data_gravacao || "";
   document.querySelector('.tab[data-view="montar"]').click();
-  render();
+  renderFicha();
 }
-
-// ---- Sortear bandas de uma playlist do YouTube ----
-$("#pl-sortear").onclick = async () => {
-  const url = $("#pl-url").value.trim();
-  if (!url) { $("#pl-status").textContent = "Cole o link da playlist."; return; }
-  const qtd = +$("#pl-qtd").value || 10;
-  $("#pl-status").textContent = "Buscando na playlist… (alguns segundos)";
-  try {
-    const r = await api("/api/playlist/sortear", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, quantidade: qtd }),
-    });
-    if (!r.ok) { $("#pl-status").textContent = "Erro: " + r.erro; return; }
-    $("#pl-status").textContent = `${r.bandas.length} bandas sorteadas — marque as que vão entrar e ajuste se precisar:`;
-    renderResultadoPlaylist(r.bandas);
-  } catch (e) { $("#pl-status").textContent = "Falha ao buscar a playlist."; }
-};
-
-function renderResultadoPlaylist(lista) {
-  const div = $("#pl-resultado");
-  div.innerHTML = "";
-  lista.forEach((b) => {
-    const linha = document.createElement("div");
-    linha.className = "pl-item";
-    const chk = document.createElement("input"); chk.type = "checkbox";
-    const nome = document.createElement("input");
-    nome.type = "text"; nome.value = (b.nome || "").toUpperCase();
-    nome.oninput = () => { nome.value = nome.value.toUpperCase(); };
-    const mus = document.createElement("input");
-    mus.type = "text"; mus.value = (b.musica || "").toUpperCase(); mus.placeholder = "música";
-    mus.oninput = () => { mus.value = mus.value.toUpperCase(); };
-    linha.append(chk, nome, mus);
-    if (b.incompleto) {
-      const aviso = document.createElement("span");
-      aviso.className = "tag";
-      aviso.title = "Título fora do padrão — confira nome/música antes de marcar";
-      aviso.textContent = "⚠ confira";
-      linha.appendChild(aviso);
-    }
-    linha._pega = () => ({ marcado: chk.checked, nome: nome.value, musica: mus.value, lancamento: b.lancamento, youtube_link: b.youtube_link });
-    div.appendChild(linha);
-  });
-  const btn = document.createElement("button");
-  btn.className = "add pl-add-sel";
-  btn.textContent = "+ Adicionar selecionadas à ficha";
-  btn.onclick = () => {
-    let n = 0;
-    div.querySelectorAll(".pl-item").forEach(linha => {
-      const d = linha._pega();
-      if (d.marcado) {
-        blocos.push(novoBloco("banda", { nome: d.nome, musica: d.musica, lancamento: d.lancamento, youtube_link: d.youtube_link }));
-        n++;
-      }
-    });
-    if (n) { render(); status(n + " banda(s) adicionada(s) à ficha"); div.innerHTML = ""; $("#pl-url").value = ""; $("#pl-status").textContent = ""; }
-  };
-  div.appendChild(btn);
-}
-
-// ---- Sortear a ordem das atrações entre si ----
-$("#btn-sortear-ordem").onclick = () => {
-  const idx = [];
-  blocos.forEach((b, i) => { if (b.tipo === "banda") idx.push(i); });
-  const arr = idx.map(i => blocos[i]);
-  for (let k = arr.length - 1; k > 0; k--) {
-    const j = Math.floor(Math.random() * (k + 1));
-    [arr[k], arr[j]] = [arr[j], arr[k]];
-  }
-  idx.forEach((pos, n) => blocos[pos] = arr[n]);
-  render();
-  status("Ordem das atrações sorteada 🎲");
-};
 
 (async function init() {
   bandas = await api("/api/bandas");
-  preencherSelectPatrocinadores();
   await novaFicha();
 })();
