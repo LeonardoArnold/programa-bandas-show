@@ -1,4 +1,4 @@
-"""
+﻿"""
 Programa Bandas Show — montador de fichas.
 Rode com:  uvicorn app:app --reload
 Depois abra http://127.0.0.1:8000
@@ -14,9 +14,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pathlib import Path
 
-import youtube_playlist
 import db
 import docx_export
+import youtube_playlist
 
 app = FastAPI(title="Bandas Show")
 db.init_db()
@@ -28,11 +28,11 @@ BASE = Path(__file__).parent
 class Banda(BaseModel):
     id: int | None = None
     nome: str
-    tipo: str = "aleatoria"          # 'patrocinador' | 'aleatoria'
+    tipo: str = "aleatoria"
     master: int = 0
     bloqueada: int = 0
-    frequencia: str = "alternado"    # 'alternado' | 'mensal' | 'manual'
-    ultima_vez: str = ""             # dd/mm/aaaa
+    frequencia: str = "alternado"
+    ultima_vez: str = ""
     youtube_link: str = ""
     facebook_link: str = ""
     musica_padrao: str = ""
@@ -137,7 +137,6 @@ def api_docx(ficha_id: int):
     )
 
 
-# Gera Word direto de blocos não salvos (prévia/download rápido)
 @app.post("/api/preview/docx")
 def api_preview_docx(ficha: Ficha):
     conteudo = docx_export.gerar_docx(ficha.model_dump())
@@ -168,6 +167,8 @@ def api_oembed(url: str):
         }
     except Exception as e:
         return {"ok": False, "erro": str(e)}
+
+
 class PlaylistReq(BaseModel):
     url: str
     quantidade: int = 10
@@ -175,10 +176,12 @@ class PlaylistReq(BaseModel):
 
 @app.post("/api/playlist/sortear")
 def api_playlist_sortear(req: PlaylistReq):
+    """Sorteia até N bandas (sem repetir) de uma playlist pública do YouTube."""
     try:
-        return {"ok": True, "bandas": youtube_playlist.extrair_playlist(req.url, req.quantidade)}
+        bandas = youtube_playlist.extrair_playlist(req.url, req.quantidade)
+        return {"ok": True, "bandas": bandas}
     except Exception as e:
-        return {"ok": False, "erro": str(e)}        
+        return {"ok": False, "erro": str(e)}
 
 
 # ---------- Frontend ----------

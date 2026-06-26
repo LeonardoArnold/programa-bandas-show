@@ -8,17 +8,34 @@ from yt_dlp import YoutubeDL
 
 
 def parse_titulo(titulo: str) -> dict:
-    """Quebra 'BANDA MARIAH - GARÇOM | ... 2026' em nome + música."""
+    """
+    Quebra 'BANDA MARIAH - GARÇOM | Feat. Paulinho... | LANÇAMENTO 2026' em nome + música.
+    Já devolve nome e música em CAIXA ALTA (padrão da ficha: 'MUSICAL CALMON (TRAÍRA)').
+    Marca 'incompleto' quando não consegue separar nome/música com confiança, pra você revisar.
+    """
     t = (titulo or "").strip()
     lanc = bool(re.search(r"lan[cç]amento", t, re.I))
-    nome, musica = t, ""
-    if " - " in t:
-        nome, resto = t.split(" - ", 1)
-        musica = re.split(r"[\|\(/]", resto, 1)[0].strip()
+    t_norm = re.sub(r"\s[–—]\s", " - ", t)
+
+    pipe_pos = t_norm.find("|")
+    hifen_pos = t_norm.find(" - ")
+    base = t_norm[:pipe_pos] if (pipe_pos != -1 and (hifen_pos == -1 or pipe_pos < hifen_pos)) else t_norm
+
+    nome, musica = base, ""
+    if " - " in base:
+        nome, resto = base.split(" - ", 1)
+        resto = re.split(r"\s*[\|\(/]\s*", resto, 1)[0]
+        resto = re.split(r"\b(?:feat\.?|ft\.?)\b", resto, 1, flags=re.I)[0]
+        musica = resto.strip()
     else:
-        nome = re.split(r"[\|\(]", t, 1)[0].strip()
-    return {"nome": nome.strip(), "musica": musica, "lancamento": lanc,
-            "titulo_original": titulo}
+        nome = re.split(r"[\|\(]", base, 1)[0].strip()
+
+    nome = nome.strip(" .-,/")
+    musica = musica.strip(" .-,/")
+    incompleto = not musica
+
+    return {"nome": nome.upper(), "musica": musica.upper(), "lancamento": lanc,
+            "incompleto": incompleto, "titulo_original": titulo}
 
 
 def _url_playlist(url: str) -> str:

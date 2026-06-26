@@ -1,7 +1,7 @@
-// ===== Estado =====
-let blocos = [];            // blocos da ficha atual
-let bandas = [];            // cache do cadastro
-let fichaId = null;         // id se a ficha já foi salva
+﻿// ===== Estado =====
+let blocos = [];
+let bandas = [];
+let fichaId = null;
 
 const $ = (s) => document.querySelector(s);
 const api = async (url, opts) => {
@@ -17,7 +17,6 @@ const ROTULO = {
 };
 const ROTULO_FREQ = { alternado: "Alternado", mensal: "Mensal", manual: "Manual" };
 
-// ===== Navegação =====
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   document.querySelectorAll(".tab").forEach(x => x.classList.remove("ativo"));
   document.querySelectorAll(".view").forEach(x => x.classList.remove("ativo"));
@@ -27,7 +26,6 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   if (t.dataset.view === "historico") carregarHistorico();
 });
 
-// ===== Montar ficha =====
 function novoBloco(tipo, extra = {}) {
   return Object.assign({
     tipo, nome: "", musica: "", feat: "", lancamento: false,
@@ -58,7 +56,6 @@ function render() {
     const li = document.createElement("li");
     li.className = "bloco tipo-" + b.tipo;
 
-    // controles de ordem
     const ordem = document.createElement("div");
     ordem.className = "ordem";
     ordem.innerHTML = `<button title="Subir">▲</button><button title="Descer">▼</button>`;
@@ -72,9 +69,9 @@ function render() {
     if (b.tipo === "banda") {
       n++;
       cont.innerHTML = `<span class="num">${n}.</span>`;
-      const nome = mkInput(b, "nome", "Nome da banda", 180);
-      const mus = mkInput(b, "musica", "Música", 150);
-      const feat = mkInput(b, "feat", "FT. (opcional)", 110);
+      const nome = mkInputMaiusculo(b, "nome", "Nome da banda", 180);
+      const mus = mkInputMaiusculo(b, "musica", "Música", 150);
+      const feat = mkInputMaiusculo(b, "feat", "FT. (opcional)", 110);
       const yt = mkInput(b, "youtube_link", "Link YouTube (opcional)", 170);
       const lanc = document.createElement("label");
       lanc.className = "lanc";
@@ -114,7 +111,26 @@ function mkInput(obj, campo, ph, largura) {
   inp.placeholder = ph;
   inp.value = obj[campo] || "";
   inp.style.width = largura + "px";
-  inp.oninput = (e) => obj[campo] = e.target.value;  // não re-renderiza: mantém o foco
+  inp.oninput = (e) => obj[campo] = e.target.value;
+  return inp;
+}
+
+// Igual ao mkInput, mas força CAIXA ALTA enquanto digita, preservando o cursor.
+function mkInputMaiusculo(obj, campo, ph, largura) {
+  const inp = document.createElement("input");
+  inp.type = "text";
+  inp.placeholder = ph;
+  inp.value = (obj[campo] || "").toUpperCase();
+  inp.style.width = largura + "px";
+  inp.oninput = (e) => {
+    const pos = e.target.selectionStart;
+    const maiusculo = e.target.value.toUpperCase();
+    if (e.target.value !== maiusculo) {
+      e.target.value = maiusculo;
+      e.target.setSelectionRange(pos, pos);
+    }
+    obj[campo] = maiusculo;
+  };
   return inp;
 }
 
@@ -139,7 +155,6 @@ async function preverClipe(b, li) {
   } catch (e) { status("Erro ao buscar clipe."); }
 }
 
-// ----- Patrocinador select -----
 function preencherSelectPatrocinadores() {
   const sel = $("#sel-patrocinador");
   sel.innerHTML = `<option value="">+ Patrocinador…</option>`;
@@ -161,7 +176,6 @@ $("#sel-patrocinador").onchange = (e) => {
 
 document.querySelectorAll(".add").forEach(btn => btn.onclick = () => addBloco(btn.dataset.add));
 
-// ----- Sugerir número/datas + incluir master -----
 $("#btn-sugerir").onclick = async () => {
   await sugerir();
   await incluirAutomaticos();
@@ -172,7 +186,6 @@ async function sugerir() {
   $("#f-numero").value = s.numero;
   $("#f-exibicao").value = s.data_exibicao;
   $("#f-gravacao").value = s.data_gravacao;
-  // gravação recalcula sozinha se mudar a exibição
 }
 $("#f-exibicao").onchange = async () => {
   const v = $("#f-exibicao").value.trim();
@@ -188,12 +201,10 @@ $("#f-exibicao").onchange = async () => {
 
 async function incluirAutomaticos() {
   const exibicao = $("#f-exibicao").value.trim();
-  // Master sempre entra
   const m = await api("/api/master");
   if (m && m.id && !blocos.some(b => b.banda_id === m.id)) {
     blocos.push(novoBloco("banda", { nome: m.nome, musica: m.musica_padrao || "", youtube_link: m.youtube_link || "", banda_id: m.id }));
   }
-  // Alternados/mensais que estão na vez nessa data de exibição
   if (exibicao) {
     const naVez = await api("/api/quem-toca?data_exibicao=" + encodeURIComponent(exibicao));
     naVez.forEach(b => {
@@ -249,7 +260,6 @@ async function novaFicha() {
   render();
 }
 
-// ===== Cadastro de bandas =====
 async function carregarBandas(busca = "") {
   bandas = await api("/api/bandas?busca=" + encodeURIComponent(busca));
   preencherSelectPatrocinadores();
@@ -320,7 +330,6 @@ $("#b-salvar").onclick = async () => {
   carregarBandas($("#busca-banda").value);
 };
 
-// ===== Histórico =====
 async function carregarHistorico() {
   const fichas = await api("/api/fichas");
   const tb = $("#tab-fichas tbody");
@@ -355,21 +364,7 @@ function carregarFichaNoEditor(f) {
   render();
 }
 
-// Embaralha a ordem das BANDAS entre si (comerciais e textos ficam no lugar).
-// Assim o Calmon pode ser a 4ª atração num programa e a 7ª no outro.
-$("#btn-sortear-ordem").onclick = () => {
-  const idx = [];
-  blocos.forEach((b, i) => { if (b.tipo === "banda") idx.push(i); });
-  const arr = idx.map(i => blocos[i]);
-  for (let k = arr.length - 1; k > 0; k--) {        // Fisher-Yates
-    const j = Math.floor(Math.random() * (k + 1));
-    [arr[k], arr[j]] = [arr[j], arr[k]];
-  }
-  idx.forEach((pos, n) => blocos[pos] = arr[n]);
-  render();
-  status("Ordem das atrações sorteada 🎲");
-};
-// ---- Sortear bandas de uma playlist ----
+// ---- Sortear bandas de uma playlist do YouTube ----
 $("#pl-sortear").onclick = async () => {
   const url = $("#pl-url").value.trim();
   if (!url) { $("#pl-status").textContent = "Cole o link da playlist."; return; }
@@ -381,7 +376,7 @@ $("#pl-sortear").onclick = async () => {
       body: JSON.stringify({ url, quantidade: qtd }),
     });
     if (!r.ok) { $("#pl-status").textContent = "Erro: " + r.erro; return; }
-    $("#pl-status").textContent = `${r.bandas.length} bandas sorteadas — marque as que vão entrar e ajuste o nome/música se precisar:`;
+    $("#pl-status").textContent = `${r.bandas.length} bandas sorteadas — marque as que vão entrar e ajuste se precisar:`;
     renderResultadoPlaylist(r.bandas);
   } catch (e) { $("#pl-status").textContent = "Falha ao buscar a playlist."; }
 };
@@ -393,9 +388,20 @@ function renderResultadoPlaylist(lista) {
     const linha = document.createElement("div");
     linha.className = "pl-item";
     const chk = document.createElement("input"); chk.type = "checkbox";
-    const nome = document.createElement("input"); nome.type = "text"; nome.value = b.nome;
-    const mus = document.createElement("input"); mus.type = "text"; mus.value = b.musica; mus.placeholder = "música";
+    const nome = document.createElement("input");
+    nome.type = "text"; nome.value = (b.nome || "").toUpperCase();
+    nome.oninput = () => { nome.value = nome.value.toUpperCase(); };
+    const mus = document.createElement("input");
+    mus.type = "text"; mus.value = (b.musica || "").toUpperCase(); mus.placeholder = "música";
+    mus.oninput = () => { mus.value = mus.value.toUpperCase(); };
     linha.append(chk, nome, mus);
+    if (b.incompleto) {
+      const aviso = document.createElement("span");
+      aviso.className = "tag";
+      aviso.title = "Título fora do padrão — confira nome/música antes de marcar";
+      aviso.textContent = "⚠ confira";
+      linha.appendChild(aviso);
+    }
     linha._pega = () => ({ marcado: chk.checked, nome: nome.value, musica: mus.value, lancamento: b.lancamento, youtube_link: b.youtube_link });
     div.appendChild(linha);
   });
@@ -416,7 +422,20 @@ function renderResultadoPlaylist(lista) {
   div.appendChild(btn);
 }
 
-// ===== Início =====
+// ---- Sortear a ordem das atrações entre si ----
+$("#btn-sortear-ordem").onclick = () => {
+  const idx = [];
+  blocos.forEach((b, i) => { if (b.tipo === "banda") idx.push(i); });
+  const arr = idx.map(i => blocos[i]);
+  for (let k = arr.length - 1; k > 0; k--) {
+    const j = Math.floor(Math.random() * (k + 1));
+    [arr[k], arr[j]] = [arr[j], arr[k]];
+  }
+  idx.forEach((pos, n) => blocos[pos] = arr[n]);
+  render();
+  status("Ordem das atrações sorteada 🎲");
+};
+
 (async function init() {
   bandas = await api("/api/bandas");
   preencherSelectPatrocinadores();
