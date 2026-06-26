@@ -1,0 +1,67 @@
+:root{
+  --verde:#137a4b; --verde-esc:#0d5c38; --vermelho:#c0392b;
+  --cinza:#f4f5f7; --borda:#dcdfe4; --texto:#222; --suave:#666;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Segoe UI,Arial,sans-serif;color:var(--texto);background:var(--cinza)}
+header{background:var(--verde);color:#fff;padding:14px 22px}
+header h1{margin:0 0 10px;font-size:20px}
+nav{display:flex;gap:8px}
+.tab{background:rgba(255,255,255,.15);color:#fff;border:0;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px}
+.tab.ativo{background:#fff;color:var(--verde-esc);font-weight:600}
+main{max-width:920px;margin:22px auto;padding:0 16px}
+.view{display:none}
+.view.ativo{display:block}
+
+button{font-size:14px;cursor:pointer;border-radius:8px;border:1px solid var(--borda);padding:8px 14px;background:#fff}
+button.prim{background:var(--verde);color:#fff;border:0}
+button.sec{background:#fff}
+button.add{background:#eef6f1;border:1px solid #cfe6da;color:var(--verde-esc);margin:2px}
+button:hover{filter:brightness(.97)}
+
+.cabecalho-ficha{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;background:#fff;padding:16px;border-radius:12px;border:1px solid var(--borda)}
+.campo{display:flex;flex-direction:column;gap:4px}
+.campo label{font-size:12px;color:var(--suave)}
+.campo input{padding:8px;border:1px solid var(--borda);border-radius:8px;font-size:14px;width:140px}
+
+.paleta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:16px 0 8px}
+.paleta-label{color:var(--suave);font-size:13px;margin-right:4px}
+.paleta select{padding:8px;border-radius:8px;border:1px solid var(--borda)}
+
+#lista-blocos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.bloco{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--borda);border-radius:10px;padding:10px 12px}
+.bloco .ordem{display:flex;flex-direction:column;gap:2px}
+.bloco .ordem button{padding:0 6px;line-height:1.4;font-size:12px}
+.bloco .conteudo{flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bloco input[type=text]{padding:7px;border:1px solid var(--borda);border-radius:7px;font-size:14px}
+.bloco .num{font-weight:700;color:var(--verde-esc);min-width:22px}
+.bloco .tag{font-size:11px;padding:2px 8px;border-radius:20px;background:#eee;color:#555}
+.bloco.tipo-comercial,.bloco.tipo-abracos,.bloco.tipo-redes_sociais{background:#fafafa}
+.bloco .lanc{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--vermelho)}
+.bloco .rm{color:var(--vermelho);border:0;background:transparent;font-size:18px}
+.fixo{font-weight:600;color:#444}
+
+.acoes-ficha{margin-top:18px;display:flex;gap:10px;align-items:center}
+.status{color:var(--suave);font-size:13px}
+
+.barra{display:flex;gap:10px;margin-bottom:14px}
+.barra input{flex:1;padding:9px;border:1px solid var(--borda);border-radius:8px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--borda);font-size:14px}
+th{background:#f0f2f4;color:#555;font-weight:600}
+.pill{font-size:12px;padding:2px 8px;border-radius:20px}
+.pill.master{background:#fff4d6;color:#9a7b00}
+.pill.bloq{background:#fde2df;color:var(--vermelho)}
+.linha-acoes button{padding:5px 10px;margin-left:4px}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:10}
+.modal.oculto{display:none}
+.modal-box{background:#fff;border-radius:14px;padding:22px;width:420px;max-width:92vw;display:flex;flex-direction:column;gap:6px}
+.modal-box h3{margin:0 0 8px}
+.modal-box label{font-size:12px;color:var(--suave);margin-top:6px}
+.modal-box input[type=text]{padding:8px;border:1px solid var(--borda);border-radius:8px}
+.checks{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.checks label{font-size:13px;color:var(--texto)}
+#bloco-frequencia.oculto{display:none}
+.pill.freq{background:#e3edff;color:#28508a}
+.modal-acoes{display:flex;gap:10px;margin-top:14px;justify-content:flex-end}

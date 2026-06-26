@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bandas Show — Fichas</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>🎶 Programa Bandas Show</h1>
+    <nav>
+      <button class="tab ativo" data-view="montar">Montar ficha</button>
+      <button class="tab" data-view="bandas">Bandas</button>
+      <button class="tab" data-view="historico">Histórico</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ====== MONTAR FICHA ====== -->
+    <section id="view-montar" class="view ativo">
+      <div class="cabecalho-ficha">
+        <div class="campo">
+          <label>Programa Nº</label>
+          <input id="f-numero" type="text" placeholder="1110">
+        </div>
+        <div class="campo">
+          <label>Exibição (domingo)</label>
+          <input id="f-exibicao" type="text" placeholder="dd/mm/aaaa">
+        </div>
+        <div class="campo">
+          <label>Gravação</label>
+          <input id="f-gravacao" type="text" placeholder="dd/mm/aaaa">
+        </div>
+        <button id="btn-sugerir" class="sec">↻ Sugerir nº/datas</button>
+      </div>
+
+      <div class="paleta">
+        <span class="paleta-label">Adicionar:</span>
+        <select id="sel-patrocinador"><option value="">+ Patrocinador…</option></select>
+        <button class="add" data-add="aleatoria">+ Banda aleatória</button>
+        <button class="add" data-add="comercial">+ Comercial</button>
+        <button class="add" data-add="texto">+ Texto / patrocínio</button>
+        <button class="add" data-add="abracos">+ Abraços</button>
+        <button class="add" data-add="redes_sociais">+ Redes sociais</button>
+      </div>
+
+      <ul id="lista-blocos"></ul>
+
+      <div class="acoes-ficha">
+        <button id="btn-salvar" class="prim">💾 Salvar ficha</button>
+        <button id="btn-word" class="prim">⬇ Gerar Word</button>
+        <button id="btn-limpar" class="sec">Limpar</button>
+        <span id="status" class="status"></span>
+      </div>
+    </section>
+
+    <!-- ====== BANDAS ====== -->
+    <section id="view-bandas" class="view">
+      <div class="barra">
+        <input id="busca-banda" type="text" placeholder="🔎 Buscar banda…">
+        <button id="btn-nova-banda" class="prim">+ Nova banda</button>
+      </div>
+      <table id="tab-bandas">
+        <thead>
+          <tr><th>Nome</th><th>Tipo</th><th>Frequência</th><th>Master</th><th>Bloqueada</th><th>Última vez</th><th>Música padrão</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- ====== HISTÓRICO ====== -->
+    <section id="view-historico" class="view">
+      <table id="tab-fichas">
+        <thead>
+          <tr><th>Nº</th><th>Exibição</th><th>Gravação</th><th>Criada em</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- Modal banda -->
+  <div id="modal-banda" class="modal oculto">
+    <div class="modal-box">
+      <h3 id="modal-titulo">Nova banda</h3>
+      <input type="hidden" id="b-id">
+      <label>Nome</label>
+      <input id="b-nome" type="text">
+      <label>Tipo</label>
+      <select id="b-tipo">
+        <option value="patrocinador">Patrocinador</option>
+        <option value="aleatoria">Aleatória</option>
+      </select>
+      <div class="checks">
+        <label><input type="checkbox" id="b-master"> Patrocinador Master (toca todo programa)</label>
+        <label><input type="checkbox" id="b-bloqueada"> Bloqueada (nunca entra na ficha)</label>
+      </div>
+      <div id="bloco-frequencia">
+        <label>Frequência (patrocinadores comuns)</label>
+        <select id="b-frequencia">
+          <option value="alternado">Alternado (1 sim, 1 não)</option>
+          <option value="mensal">Mensal (1x por mês)</option>
+          <option value="manual">Manual (eu escolho toda vez)</option>
+        </select>
+        <label>Última vez que tocou (se já tocou antes)</label>
+        <input id="b-ultima-vez" type="text" placeholder="dd/mm/aaaa">
+      </div>
+      <label>Música padrão (opcional)</label>
+      <input id="b-musica" type="text">
+      <label>Link YouTube (opcional)</label>
+      <input id="b-youtube" type="text">
+      <label>Observações</label>
+      <input id="b-obs" type="text">
+      <div class="modal-acoes">
+        <button id="b-salvar" class="prim">Salvar</button>
+        <button id="b-cancelar" class="sec">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
