@@ -355,6 +355,67 @@ function carregarFichaNoEditor(f) {
   render();
 }
 
+// Embaralha a ordem das BANDAS entre si (comerciais e textos ficam no lugar).
+// Assim o Calmon pode ser a 4ª atração num programa e a 7ª no outro.
+$("#btn-sortear-ordem").onclick = () => {
+  const idx = [];
+  blocos.forEach((b, i) => { if (b.tipo === "banda") idx.push(i); });
+  const arr = idx.map(i => blocos[i]);
+  for (let k = arr.length - 1; k > 0; k--) {        // Fisher-Yates
+    const j = Math.floor(Math.random() * (k + 1));
+    [arr[k], arr[j]] = [arr[j], arr[k]];
+  }
+  idx.forEach((pos, n) => blocos[pos] = arr[n]);
+  render();
+  status("Ordem das atrações sorteada 🎲");
+};
+// ---- Sortear bandas de uma playlist ----
+$("#pl-sortear").onclick = async () => {
+  const url = $("#pl-url").value.trim();
+  if (!url) { $("#pl-status").textContent = "Cole o link da playlist."; return; }
+  const qtd = +$("#pl-qtd").value || 10;
+  $("#pl-status").textContent = "Buscando na playlist… (alguns segundos)";
+  try {
+    const r = await api("/api/playlist/sortear", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, quantidade: qtd }),
+    });
+    if (!r.ok) { $("#pl-status").textContent = "Erro: " + r.erro; return; }
+    $("#pl-status").textContent = `${r.bandas.length} bandas sorteadas — marque as que vão entrar e ajuste o nome/música se precisar:`;
+    renderResultadoPlaylist(r.bandas);
+  } catch (e) { $("#pl-status").textContent = "Falha ao buscar a playlist."; }
+};
+
+function renderResultadoPlaylist(lista) {
+  const div = $("#pl-resultado");
+  div.innerHTML = "";
+  lista.forEach((b) => {
+    const linha = document.createElement("div");
+    linha.className = "pl-item";
+    const chk = document.createElement("input"); chk.type = "checkbox";
+    const nome = document.createElement("input"); nome.type = "text"; nome.value = b.nome;
+    const mus = document.createElement("input"); mus.type = "text"; mus.value = b.musica; mus.placeholder = "música";
+    linha.append(chk, nome, mus);
+    linha._pega = () => ({ marcado: chk.checked, nome: nome.value, musica: mus.value, lancamento: b.lancamento, youtube_link: b.youtube_link });
+    div.appendChild(linha);
+  });
+  const btn = document.createElement("button");
+  btn.className = "add pl-add-sel";
+  btn.textContent = "+ Adicionar selecionadas à ficha";
+  btn.onclick = () => {
+    let n = 0;
+    div.querySelectorAll(".pl-item").forEach(linha => {
+      const d = linha._pega();
+      if (d.marcado) {
+        blocos.push(novoBloco("banda", { nome: d.nome, musica: d.musica, lancamento: d.lancamento, youtube_link: d.youtube_link }));
+        n++;
+      }
+    });
+    if (n) { render(); status(n + " banda(s) adicionada(s) à ficha"); div.innerHTML = ""; $("#pl-url").value = ""; $("#pl-status").textContent = ""; }
+  };
+  div.appendChild(btn);
+}
+
 // ===== Início =====
 (async function init() {
   bandas = await api("/api/bandas");

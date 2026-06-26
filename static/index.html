@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
@@ -17,7 +17,6 @@
   </header>
 
   <main>
-    <!-- ====== MONTAR FICHA ====== -->
     <section id="view-montar" class="view ativo">
       <div class="cabecalho-ficha">
         <div class="campo">
@@ -45,17 +44,25 @@
         <button class="add" data-add="redes_sociais">+ Redes sociais</button>
       </div>
 
+      <div class="playlist-box">
+        <input id="pl-url" type="text" placeholder="Cole aqui o link de uma playlist do YouTube">
+        <label>sortear <input id="pl-qtd" type="number" value="10" min="1" max="50"> bandas</label>
+        <button id="pl-sortear" class="add">🎲 Sortear da playlist</button>
+        <div id="pl-status" class="status"></div>
+        <div id="pl-resultado"></div>
+      </div>
+
       <ul id="lista-blocos"></ul>
 
       <div class="acoes-ficha">
         <button id="btn-salvar" class="prim">💾 Salvar ficha</button>
         <button id="btn-word" class="prim">⬇ Gerar Word</button>
+        <button id="btn-sortear-ordem" class="sec">🎲 Sortear ordem</button>
         <button id="btn-limpar" class="sec">Limpar</button>
         <span id="status" class="status"></span>
       </div>
     </section>
 
-    <!-- ====== BANDAS ====== -->
     <section id="view-bandas" class="view">
       <div class="barra">
         <input id="busca-banda" type="text" placeholder="🔎 Buscar banda…">
@@ -69,7 +76,6 @@
       </table>
     </section>
 
-    <!-- ====== HISTÓRICO ====== -->
     <section id="view-historico" class="view">
       <table id="tab-fichas">
         <thead>
@@ -80,7 +86,6 @@
     </section>
   </main>
 
-  <!-- Modal banda -->
   <div id="modal-banda" class="modal oculto">
     <div class="modal-box">
       <h3 id="modal-titulo">Nova banda</h3>

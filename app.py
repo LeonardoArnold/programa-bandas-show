@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pathlib import Path
 
+import youtube_playlist
 import db
 import docx_export
 
@@ -167,6 +168,17 @@ def api_oembed(url: str):
         }
     except Exception as e:
         return {"ok": False, "erro": str(e)}
+class PlaylistReq(BaseModel):
+    url: str
+    quantidade: int = 10
+
+
+@app.post("/api/playlist/sortear")
+def api_playlist_sortear(req: PlaylistReq):
+    try:
+        return {"ok": True, "bandas": youtube_playlist.extrair_playlist(req.url, req.quantidade)}
+    except Exception as e:
+        return {"ok": False, "erro": str(e)}        
 
 
 # ---------- Frontend ----------
