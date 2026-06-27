@@ -102,7 +102,10 @@ function mover(arr, i, d) {
   [arr[i], arr[j]] = [arr[j], arr[i]];
 }
 
-function renderFicha() { renderEditor(blocos, $("#lista-blocos"), renderFicha); }
+function renderFicha() {
+  renderEditor(blocos, $("#lista-blocos"), renderFicha);
+  if ($("#pat-resultado").dataset.aberto === "1") renderPainelPatrocinadores();
+}
 function renderModelo() { renderEditor(modeloBlocos, $("#lista-blocos-modelo"), renderModelo); }
 
 function mkInput(obj, campo, ph, largura) {
@@ -137,8 +140,6 @@ function adicionarBandaNaFicha(dados) {
   return true;
 }
 
-// Salva a música (e o link, se tiver) digitados na ficha como padrão da banda cadastrada,
-// pra já vir preenchido nas próximas fichas sem precisar redigitar toda semana.
 async function fixarMusicaPadrao(b, btn) {
   const banda = bandas.find(x => x.id === b.banda_id);
   if (!banda) { status("Não achei o cadastro dessa banda."); return; }
@@ -174,15 +175,23 @@ async function preverClipe(b, li) {
   } catch (e) { status("Erro ao buscar clipe."); }
 }
 
+// ===== Painel de patrocinadores (checkbox) =====
+let _naVezCache = new Set();
+
 $("#btn-patrocinadores").onclick = async () => {
   const div = $("#pat-resultado");
   if (div.dataset.aberto === "1") { div.innerHTML = ""; div.dataset.aberto = "0"; return; }
   div.dataset.aberto = "1";
-  let naVez = new Set();
+  _naVezCache = new Set();
   const exib = $("#f-exibicao").value.trim();
   if (exib) {
-    try { (await api("/api/quem-toca?data_exibicao=" + encodeURIComponent(exib))).forEach(b => naVez.add(b.id)); } catch (e) {}
+    try { (await api("/api/quem-toca?data_exibicao=" + encodeURIComponent(exib))).forEach(b => _naVezCache.add(b.id)); } catch (e) {}
   }
+  renderPainelPatrocinadores();
+};
+
+function renderPainelPatrocinadores() {
+  const div = $("#pat-resultado");
   const lista = bandas.filter(b => b.tipo === "patrocinador" && !b.bloqueada);
   const idsNaFicha = new Set(blocos.filter(b => b.tipo === "banda" && b.banda_id).map(b => b.banda_id));
   div.innerHTML = "";
@@ -197,7 +206,7 @@ $("#btn-patrocinadores").onclick = async () => {
     if (jaNaFicha) {
       const tag = document.createElement("span"); tag.className = "tag dica";
       tag.textContent = "já na ficha"; linha.appendChild(tag);
-    } else if (b.master || naVez.has(b.id)) {
+    } else if (b.master || _naVezCache.has(b.id)) {
       const dica = document.createElement("span"); dica.className = "tag dica";
       dica.textContent = b.master ? "toca sempre" : "na vez";
       linha.appendChild(dica);
@@ -215,11 +224,11 @@ $("#btn-patrocinadores").onclick = async () => {
         if (ok) n++; else repetidas++;
       }
     });
-    if (n) { renderFicha(); status(n + " patrocinador(es) adicionado(s)" + (repetidas ? ` — ${repetidas} já estavam na ficha` : "")); div.innerHTML = ""; div.dataset.aberto = "0"; }
+    if (n) { renderFicha(); status(n + " patrocinador(es) adicionado(s)" + (repetidas ? ` — ${repetidas} já estavam na ficha` : "")); }
     else if (repetidas) { status("Essas bandas já estão na ficha."); }
   };
   div.appendChild(btn);
-};
+}
 
 document.querySelectorAll("#view-montar .add[data-add]").forEach(btn => btn.onclick = () => {
   const tipo = btn.dataset.add;
@@ -456,5 +465,3 @@ function carregarFichaNoEditor(f) {
   bandas = await api("/api/bandas");
   await novaFicha();
 })();
-
-
