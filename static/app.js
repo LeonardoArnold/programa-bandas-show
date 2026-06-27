@@ -69,6 +69,13 @@ function renderEditor(arr, ul, reRender) {
       btnYt.textContent = "▶ clipe"; btnYt.className = "sec";
       btnYt.onclick = () => preverClipe(b, li);
       cont.append(nome, mus, feat, lanc, yt, btnYt);
+      if (b.banda_id) {
+        const btnFixar = document.createElement("button");
+        btnFixar.textContent = "💾 fixar música"; btnFixar.className = "sec";
+        btnFixar.title = "Salva esta música como padrão dessa banda, pra já vir preenchida nas próximas fichas";
+        btnFixar.onclick = () => fixarMusicaPadrao(b, btnFixar);
+        cont.appendChild(btnFixar);
+      }
     } else if (b.tipo === "comercial") {
       cont.innerHTML = `<span class="fixo">COMERCIAL</span><span class="tag">bloco fixo</span>`;
     } else {
@@ -123,6 +130,25 @@ function adicionarBandaNaFicha(dados) {
   const vaga = blocos.find(b => b.tipo === "banda" && !(b.nome || "").trim());
   if (vaga) Object.assign(vaga, dados);
   else blocos.push(novoBloco("banda", dados));
+}
+
+// Salva a música (e o link, se tiver) digitados na ficha como padrão da banda cadastrada,
+// pra já vir preenchido nas próximas fichas sem precisar redigitar toda semana.
+async function fixarMusicaPadrao(b, btn) {
+  const banda = bandas.find(x => x.id === b.banda_id);
+  if (!banda) { status("Não achei o cadastro dessa banda."); return; }
+  const musica = (b.musica || "").trim();
+  if (!musica) { status("Digite a música antes de fixar."); return; }
+  const atualizada = Object.assign({}, banda, {
+    musica_padrao: musica,
+    youtube_link: (b.youtube_link || banda.youtube_link || ""),
+  });
+  await api("/api/bandas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(atualizada) });
+  banda.musica_padrao = musica;
+  const original = btn.textContent;
+  btn.textContent = "✓ fixado";
+  setTimeout(() => { btn.textContent = original; }, 1500);
+  status(`"${musica}" fixada como padrão de ${banda.nome}`);
 }
 
 async function preverClipe(b, li) {
@@ -415,3 +441,4 @@ function carregarFichaNoEditor(f) {
   bandas = await api("/api/bandas");
   await novaFicha();
 })();
+
