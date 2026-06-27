@@ -127,9 +127,14 @@ function mkInputMaiusculo(obj, campo, ph, largura) {
 }
 
 function adicionarBandaNaFicha(dados) {
+  if (dados.banda_id && blocos.some(b => b.tipo === "banda" && b.banda_id === dados.banda_id)) {
+    status(`Não dá pra repetir banda patrocinadora: ${dados.nome} já está nessa ficha.`);
+    return false;
+  }
   const vaga = blocos.find(b => b.tipo === "banda" && !(b.nome || "").trim());
   if (vaga) Object.assign(vaga, dados);
   else blocos.push(novoBloco("banda", dados));
+  return true;
 }
 
 // Salva a música (e o link, se tiver) digitados na ficha como padrão da banda cadastrada,
@@ -179,14 +184,20 @@ $("#btn-patrocinadores").onclick = async () => {
     try { (await api("/api/quem-toca?data_exibicao=" + encodeURIComponent(exib))).forEach(b => naVez.add(b.id)); } catch (e) {}
   }
   const lista = bandas.filter(b => b.tipo === "patrocinador" && !b.bloqueada);
+  const idsNaFicha = new Set(blocos.filter(b => b.tipo === "banda" && b.banda_id).map(b => b.banda_id));
   div.innerHTML = "";
   lista.forEach(b => {
     const linha = document.createElement("div");
     linha.className = "pat-item";
+    const jaNaFicha = idsNaFicha.has(b.id);
     const chk = document.createElement("input"); chk.type = "checkbox"; chk.dataset.id = b.id;
+    if (jaNaFicha) { chk.checked = true; chk.disabled = true; }
     const nome = document.createElement("span"); nome.textContent = b.nome + (b.master ? " (MASTER)" : "");
     linha.append(chk, nome);
-    if (b.master || naVez.has(b.id)) {
+    if (jaNaFicha) {
+      const tag = document.createElement("span"); tag.className = "tag dica";
+      tag.textContent = "já na ficha"; linha.appendChild(tag);
+    } else if (b.master || naVez.has(b.id)) {
       const dica = document.createElement("span"); dica.className = "tag dica";
       dica.textContent = b.master ? "toca sempre" : "na vez";
       linha.appendChild(dica);
@@ -196,12 +207,16 @@ $("#btn-patrocinadores").onclick = async () => {
   const btn = document.createElement("button");
   btn.className = "add pl-add-sel"; btn.textContent = "+ Adicionar marcados à ficha";
   btn.onclick = () => {
-    let n = 0;
-    div.querySelectorAll(".pat-item input:checked").forEach(chk => {
+    let n = 0, repetidas = 0;
+    div.querySelectorAll(".pat-item input:checked:not(:disabled)").forEach(chk => {
       const b = bandas.find(x => x.id == chk.dataset.id);
-      if (b) { adicionarBandaNaFicha({ nome: b.nome.toUpperCase(), musica: (b.musica_padrao || "").toUpperCase(), youtube_link: b.youtube_link || "", banda_id: b.id }); n++; }
+      if (b) {
+        const ok = adicionarBandaNaFicha({ nome: b.nome.toUpperCase(), musica: (b.musica_padrao || "").toUpperCase(), youtube_link: b.youtube_link || "", banda_id: b.id });
+        if (ok) n++; else repetidas++;
+      }
     });
-    if (n) { renderFicha(); status(n + " patrocinador(es) adicionado(s)"); div.innerHTML = ""; div.dataset.aberto = "0"; }
+    if (n) { renderFicha(); status(n + " patrocinador(es) adicionado(s)" + (repetidas ? ` — ${repetidas} já estavam na ficha` : "")); div.innerHTML = ""; div.dataset.aberto = "0"; }
+    else if (repetidas) { status("Essas bandas já estão na ficha."); }
   };
   div.appendChild(btn);
 };
@@ -441,4 +456,5 @@ function carregarFichaNoEditor(f) {
   bandas = await api("/api/bandas");
   await novaFicha();
 })();
+
 
